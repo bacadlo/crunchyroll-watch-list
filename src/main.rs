@@ -1,61 +1,61 @@
+use anyhow::{Result, Context};
+use dotenv::dotenv;
+use std::env;
+use tokio;
+
 mod auth;
 mod history;
 mod models;
 
-use anyhow::Result;
-use dotenv::dotenv; 
-use std::env;       
-use tracing::{info, Level};
-
-use crate::auth::CrunchyrollClient;
-use crate::history::HistoryManager;
+use crate::{
+    auth::CrunchyrollClient,
+    history::History,
+    models::WatchedItem,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
-
-    // Load environment variables
     dotenv().ok();
     
     let email = env::var("CRUNCHYROLL_EMAIL")
-        .expect("CRUNCHYROLL_EMAIL must be set");
+        .context("CRUNCHYROLL_EMAIL not found in environment")?;
     let password = env::var("CRUNCHYROLL_PASSWORD")
-        .expect("CRUNCHYROLL_PASSWORD must be set");
-
-    // Create and authenticate client
-    info!("Authenticating with Crunchyroll...");
+        .context("CRUNCHYROLL_PASSWORD not found in environment")?;
+    let history_limit = env::var("HISTORY_LIMIT")
+        .ok()
+        .and_then(|s| s.parse().ok());
+    
     let client = CrunchyrollClient::new(&email, &password).await?;
+    let history = History::new(&client);
 
-    // Create history manager
-    let history_manager = HistoryManager::new(client);
-
-    // Fetch watch history
-    info!("Fetching watch history...");
-    let history = history_manager.fetch_watch_history().await?;
-
-    // Print watch history
-    println!("\nWatch History:");
-    for entry in &history {
-        println!("\nSeries: {}", entry.series_title);
-        println!("Episode: {}", entry.title);
-        println!("Progress: {:.2}%", entry.progress);
-        println!("Watched at: {}", entry.watched_at);
-        println!("Status: {}", entry.status);
-        println!("------------------------");
-    }
-
-    // Get and print statistics
-    info!("Calculating statistics...");
-    let stats = history_manager.get_watch_statistics().await?;
-
-    println!("\nWatch Statistics:");
-    println!("Total Episodes: {}", stats.total_episodes);
-    println!("Completed Episodes: {}", stats.completed_episodes);
-    println!("In Progress: {}", stats.in_progress_count);
-    println!("Last Watched: {}", stats.last_watched);
+    let items = history.fetch_history(history_limit).await?;
+    display_history(&items);
 
     Ok(())
+}
+
+fn display_history(items: &[WatchedItem]) {
+    for item in items {
+        let progress = format!("{:.1}%", item.progress);
+        let status = if item.fully_watched { "Completed" } else { "In Progress" };
+
+        let display = match &item.episode_title {
+            Some(episode) => format!(
+                "{} - {} (Watched: {}, Progress: {}, Status: {})",
+                item.title,
+                episode,
+                item.date_watched.format("%Y-%m-%d %H:%M"),
+                progress,
+                status
+            ),
+            None => format!(
+                "{} (Watched: {}, Progress: {}, Status: {})",
+                item.title,
+                item.date_watched.format("%Y-%m-%d %H:%M"),
+                progress,
+                status
+            ),
+        };
+        println!("{}", display);
+    }
 }
