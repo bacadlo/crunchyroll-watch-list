@@ -14,8 +14,4 @@ impl CrunchyrollClient {
         Ok(Self { client })
     }
 
-    pub async fn validate_session(&self) -> bool {
-        // The library handles session management internally
-        true
-    }
 }
