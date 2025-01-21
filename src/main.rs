@@ -52,7 +52,7 @@ fn save_to_csv(items: &[WatchedItem]) -> Result<()> {
 
     // Write data
     for item in items {
-        let progress = format!("{:.1}%", item.progress);
+        let progress = format!("{:.2}%", item.progress);
         let status = if item.fully_watched { "Completed" } else { "In Progress" };
         
         writer.write_record(&[
