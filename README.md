@@ -10,7 +10,21 @@ Implemented using <a href="https://github.com/crunchy-labs/crunchyroll-rs" targe
 
 2. Clone this repository: 
 
-3. Run the program:
+3. Create a new file called `.env` in the root of the project and add your Crunchyroll credentials as follows:
+
+    CRUNCHYROLL_EMAIL=your_email
+    CRUNCHYROLL_PASSWORD=your_password
+    HISTORY_LIMIT=20
+
+3. Install dependencies:
+   
+   cargo build
+   
+
+4. Run the program:
+
+   cargo run
+   
 
 
 
