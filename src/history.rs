@@ -26,19 +26,43 @@ impl<'a> History<'a> {
             let entry = entry?;
             
             let watched_item = match entry.panel {
-                crunchyroll_rs::MediaCollection::Episode(episode) => WatchedItem {
-                    title: episode.series_title,
-                    episode_title: Some(episode.title),
-                    date_watched: entry.date_played,
-                    progress: entry.playhead as f32,
-                    fully_watched: entry.fully_watched,
+                crunchyroll_rs::MediaCollection::Episode(episode) => {
+                    // Convert duration to seconds before calculation
+                    let duration_secs = episode.duration.num_seconds() as f64;
+                    let playhead_secs = entry.playhead as f64;
+                    
+                    let progress = if duration_secs > 0.0 {
+                        (playhead_secs / duration_secs) * 100.0
+                    } else {
+                        0.0
+                    };
+                    
+                    WatchedItem {
+                        title: episode.series_title,
+                        episode_title: Some(episode.title),
+                        date_watched: entry.date_played,
+                        progress,
+                        fully_watched: entry.fully_watched,
+                    }
                 },
-                crunchyroll_rs::MediaCollection::Movie(movie) => WatchedItem {
-                    title: movie.title,
-                    episode_title: None,
-                    date_watched: entry.date_played,
-                    progress: entry.playhead as f32,
-                    fully_watched: entry.fully_watched,
+                crunchyroll_rs::MediaCollection::Movie(movie) => {
+                    // Convert duration to seconds before calculation
+                    let duration_secs = movie.duration.num_seconds() as f64;
+                    let playhead_secs = entry.playhead as f64;
+                    
+                    let progress = if duration_secs > 0.0 {
+                        (playhead_secs / duration_secs) * 100.0
+                    } else {
+                        0.0
+                    };
+                    
+                    WatchedItem {
+                        title: movie.title,
+                        episode_title: None,
+                        date_watched: entry.date_played,
+                        progress,
+                        fully_watched: entry.fully_watched,
+                    }
                 },
                 _ => continue,
             };
