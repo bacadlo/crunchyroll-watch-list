@@ -1,6 +1,8 @@
 use anyhow::{Result, Context};
 use dotenv::dotenv;
 use std::env;
+use std::fs::File;
+use csv::Writer;
 use tokio;
 
 mod auth;
@@ -29,33 +31,39 @@ async fn main() -> Result<()> {
     let history = History::new(&client);
 
     let items = history.fetch_history(history_limit).await?;
-    display_history(&items);
+    save_to_csv(&items)?;
 
+    println!("Successfully exported {} items to history.csv", items.len());
     Ok(())
 }
 
-fn display_history(items: &[WatchedItem]) {
+fn save_to_csv(items: &[WatchedItem]) -> Result<()> {
+    let file = File::create("history.csv")?;
+    let mut writer = Writer::from_writer(file);
+
+    // Write headers
+    writer.write_record(&[
+        "Title",
+        "Episode",
+        "Date Watched",
+        "Progress",
+        "Status",
+    ])?;
+
+    // Write data
     for item in items {
         let progress = format!("{:.1}%", item.progress);
         let status = if item.fully_watched { "Completed" } else { "In Progress" };
-
-        let display = match &item.episode_title {
-            Some(episode) => format!(
-                "{} - {} (Watched: {}, Progress: {}, Status: {})",
-                item.title,
-                episode,
-                item.date_watched.format("%Y-%m-%d %H:%M"),
-                progress,
-                status
-            ),
-            None => format!(
-                "{} (Watched: {}, Progress: {}, Status: {})",
-                item.title,
-                item.date_watched.format("%Y-%m-%d %H:%M"),
-                progress,
-                status
-            ),
-        };
-        println!("{}", display);
+        
+        writer.write_record(&[
+            &item.title,
+            item.episode_title.as_deref().unwrap_or(""),
+            &item.date_watched.format("%Y-%m-%d %H:%M").to_string(),
+            &progress,
+            status,
+        ])?;
     }
+
+    writer.flush()?;
+    Ok(())
 }
