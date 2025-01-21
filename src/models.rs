@@ -6,6 +6,6 @@ pub struct WatchedItem {
     pub title: String,
     pub episode_title: Option<String>,
     pub date_watched: DateTime<Utc>,
-    pub progress: f32,
+    pub progress: f64,
     pub fully_watched: bool,
 }
