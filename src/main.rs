@@ -41,11 +41,12 @@ fn save_to_csv(items: &[WatchedItem]) -> Result<()> {
     let file = File::create("history.csv")?;
     let mut writer = Writer::from_writer(file);
 
-    // Write headers
+    // Write headers with separate date and time columns
     writer.write_record(&[
         "Title",
         "Episode",
-        "Date Watched",
+        "Date",
+        "Time",
         "Progress",
         "Status",
     ])?;
@@ -54,11 +55,14 @@ fn save_to_csv(items: &[WatchedItem]) -> Result<()> {
     for item in items {
         let progress = format!("{:.2}%", item.progress);
         let status = if item.fully_watched { "Completed" } else { "In Progress" };
+        let date = item.date_watched.format("%Y-%m-%d").to_string();
+        let time = item.date_watched.format("%H:%M:%S").to_string();
         
         writer.write_record(&[
             &item.title,
             item.episode_title.as_deref().unwrap_or(""),
-            &item.date_watched.format("%Y-%m-%d %H:%M").to_string(),
+            &date,
+            &time,
             &progress,
             status,
         ])?;
